@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+
+<head>
+    <script src="lexer.js"></script>
+</head>
+
+<body>
+    <label for="in">Input:</label>
+    <input type="text" id="in">
+
+    <span id="out"></span>
+    <script>
+        let input = document.getElementById('in')
+        let output = document.getElementById('out')
+        input.onchange = _ => {
+            output.innerText = tokenize(input.value).map(JSON.stringify)
+        }
+    </script>
+</body>
