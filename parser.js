@@ -1,100 +1,148 @@
+//import { Atom, And, Or, Impl } from 'sat';
 
-function isAlnum(x) {
-    return x.match(/^[a-z0-9]+$/i)
-}
+/* LANGUGAGE
+ * 
+ * <atom> ::= ...
+ * <expr> ::= <term> '&' <term> | <term> '|' <term> | <term> '=>' <term> | <term> '<=>' <term>
+ * <term> ::= '!' '(' <expr> ')' | '(' <expr> ')' | <literal>
+ * <literal> ::= <atom> | '!' <atom>
+ */
 
 class Parser {
-    parse(tokens) {
-        this.position = 0
-        this.tokens = tokens
-        this.lookahead = this.tokens[this.position]
-        this.result = undefined
+    constructor() {
+        this.sym = undefined
+        this.input = undefined
+        this.pointer = 0
+    }
 
-        this.expression()
-        return this.result
+    parse(toks) {
+        this.input = toks
+        this.pointer = 0
+
+        this.sym = this.input[this.pointer]
+        let expr = null
+        if (this.expr(e => expr = e)) {
+            return expr
+        } else {
+
+            return null
+        }
+    }
+
+    next() {
+        this.sym = this.input[++this.pointer]
     }
 
     rewind(pos) {
-        this.position = pos
-        this.lookahead = this.tokens[this.position]
+        this.pointer = pos
+        this.sym = this.input[this.pointer]
     }
 
-    advance() {
-        let tmp = this.position
-        this.lookahead = this.tokens[++this.position]
-        return tmp
-    }
-
-    hasNext() {
-        return this.position < this.tokens.lenght
-    }
-
-    variable() {
-        if (this.lookahead.id === "IDENTIFIER") {
-            this.result = new Literal(this.lookahead.value)
-            this.advance()
-            return true
-        }
-        return false
-    }
-
-    negation() {
-        if (this.lookahead.id === "NEG") {
-            let checkpoint = this.advance()
-            if (this.expression()) {
-                this.result = this.result.neg()
-                return true
-            } else {
-                this.rewind(checkpoint)
+    accept(id, consumer = null) {
+        if (this.sym.kind === id) {
+            if (consumer) {
+                consumer(sym.kind)
             }
+            this.next()
+            return true
         }
+
         return false
     }
 
-    operation() {
-        if (this.lookahead.id === "IDENTIFIER") {
-            this.result = new Literal(this.lookahead.value)
-            this.advance()
+    atom(cons) {
+
+        if (this.sym.kind === "IDENTIFIER") {
+
+            cons(new Atom(this.sym.value))
+            this.next()
             return true
         }
         return false
     }
 
-    expression() {
-        if (this.variable()) return true
+    literal(cons) {
+
+        let negated = this.accept("NEG")
+        let atom
+        if (this.atom(a => atom = a)) {
+            if (negated) {
+                atom.negated = !atom.negated
+            }
+            cons(atom)
+            return true
+        }
+        return false
+    }
+
+    term(cons) {
+
+        let negated = this.accept("NEG")
+        if (this.accept('POPEN')) {
+            let expr
+            if (this.expr(e => expr = e)) {
+                if (negated) {
+                    expr.negated = !expr.negated
+                }
+
+                cons(expr)
+            }
+            if (!this.accept('PCLOSE')) {
+                return false
+            }
+            return true
+        }
+        let lit
+        if (this.literal(l => lit = l)) {
+            cons(negated ? lit.not() : lit)
+            return true
+        }
+        return false
+    }
+
+    expr(cons) {
+
+        let lhs, rhs
+        if (!this.term(t => lhs = t)) {
+            return false
+        }
+        let op
+        if (!this.sym) {
+            cons(lhs)
+            return true
+        }
+        switch (this.sym.kind) {
+            case 'AND':
+            case 'OR':
+            case 'IMPL':
+            case 'BICON':
+                op = this.sym.kind
+                this.next()
+                break
+            default:
+                cons(lhs)
+                return true
+        }
+
+        if (!this.term(t => rhs = t)) {
+            throw "expr: unbalanced operation"
+        }
+        switch (op) {
+            case 'AND':
+                cons(new And(lhs, rhs))
+                break
+            case 'OR':
+                cons(new Or(lhs, rhs))
+                break
+            case 'IMPL':
+                cons(new Implication(lhs, rhs))
+                break
+            case 'BICON':
+                cons(new Biconditional(lhs, rhs))
+                break
+            default:
+                throw "unreachable"
+        }
+        return true
     }
 }
-
-
-function prompt(question, callback) {
-    var stdin = process.stdin,
-        stdout = process.stdout;
-
-    stdin.resume();
-    stdout.write(question);
-
-    stdin.once('data', function (data) {
-        callback(data.toString().trim());
-    });
-}
-
-function main() {
-    let [P, Q, R, S] = [new Literal('P'), new Literal('Q'), new Literal('R'), new Literal('S')]
-    let input = new Implication(new And(P, new Implication(Q, R)), S)
-    console.log("input: \t\t" + input.toString())
-    let input1 = input.reduceImplication()
-    console.log("reduce impl: \t" + input.toString())
-    input1 = input1.deMorgan()
-    console.log("deMorgan: \t" + input.toString())
-    input1 = input1.distribute()
-    console.log("distributing: \t" + input1.toString())
-
-    console.log("normalized: \t" + new CNF(input))
-
-    let p = new Parser()
-    prompt('>', (res) => {
-        console.log(p.parse(res))
-    })
-}
-
-main()

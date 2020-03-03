@@ -4,49 +4,49 @@ const assoc = [
     {
         regex: /^&|\u2227/i,
         fun: _ => ({
-            id: 'AND'
+            kind: 'AND'
         })
     },
     {
         regex: /^\||\u2228/i,
         fun: _ => ({
-            id: 'AND'
+            kind: 'OR'
         })
     },
     {
-        regex: /^=>|\u21d2/i,
+        regex: /^(=>)|\u21d2/i,
         fun: _ => ({
-            id: 'IMPL'
+            kind: 'IMPL'
         })
     },
     {
-        regex: /^<=>|\u21D4/i,
+        regex: /^(<=>)|\u21D4/i,
         fun: _ => ({
-            id: 'BICON'
+            kind: 'BICON'
         })
     },
     {
         regex: /^!|\u00AC/i,
         fun: _ => ({
-            id: 'NEG'
+            kind: 'NEG'
         })
     },
     {
         regex: /^\(/i,
         fun: _ => ({
-            id: 'POPEN'
+            kind: 'POPEN'
         })
     },
     {
         regex: /^\)/i,
         fun: _ => ({
-            id: 'PCLOSE'
+            kind: 'PCLOSE'
         })
     },
     {
         regex: /^([a-z]|[A-Z]|[0-9])+/i,
         fun: str => ({
-            id: "IDENTIFIER",
+            kind: "IDENTIFIER",
             value: str.toUpperCase()
         })
     }
@@ -56,7 +56,6 @@ function tokenize(str) {
     let tokens = []
     let ws = /\s*/
     while (str.length) {
-        console.log(str)
         // skip whitespace
         str = str.replace(ws, '')
         // exec regexes
@@ -67,18 +66,15 @@ function tokenize(str) {
             }
         }
 
-
         if (match) {
+
             tokens.push(fun(match[0]))
             str = str.substr(match[0].length)
         } else {
             throw "unexpected token"
 
         }
-        console.log({ match, regex })
     }
-
-    console.log(tokens)
 
     return tokens
 }

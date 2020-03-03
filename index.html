@@ -1,19 +1,41 @@
 <!DOCTYPE html>
 
 <head>
+
+    <meta charset="UTF-8">
+
+    <script src="sat.js"></script>
     <script src="lexer.js"></script>
+    <script src="parser.js"></script>
 </head>
 
 <body>
-    <label for="in">Input:</label>
-    <input type="text" id="in">
+    <div>
+        <label for="in">Input:</label>
+        <input type="text" id="in">
+        <button id="parse">Parse</button>
+    </div>
 
-    <span id="out"></span>
+    <div>
+        <h2>Input</h2>
+        <span id="out"></span>
+    </div>
+    <div>
+        <h2>CNF</h2>
+        <span id="norm"></span>
+    </div>
     <script>
         let input = document.getElementById('in')
         let output = document.getElementById('out')
-        input.onchange = _ => {
-            output.innerText = tokenize(input.value).map(JSON.stringify)
+        let normal = document.getElementById('norm')
+        let but = document.getElementById('parse')
+        but.onclick = _ => {
+            let toks = tokenize(input.value)
+            console.log({ toks })
+            let expr = new Parser().parse(toks)
+            output.innerText = expr
+            let cnf = new CNF(expr)
+            normal.innerText = cnf
         }
     </script>
 </body>
