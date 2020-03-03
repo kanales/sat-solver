@@ -1,3 +1,5 @@
+//export { tokenize }
+
 const assoc = [
     {
         regex: /^&|\u2227/i,
@@ -6,7 +8,7 @@ const assoc = [
         })
     },
     {
-        regex: /^||\u2228/i,
+        regex: /^\||\u2228/i,
         fun: _ => ({
             id: 'AND'
         })
@@ -42,7 +44,7 @@ const assoc = [
         })
     },
     {
-        regex: /^[a-z0-9]+/i,
+        regex: /^([a-z]|[A-Z]|[0-9])+/i,
         fun: str => ({
             id: "IDENTIFIER",
             value: str.toUpperCase()
@@ -54,6 +56,7 @@ function tokenize(str) {
     let tokens = []
     let ws = /\s*/
     while (str.length) {
+        console.log(str)
         // skip whitespace
         str = str.replace(ws, '')
         // exec regexes
@@ -63,14 +66,20 @@ function tokenize(str) {
                 break
             }
         }
+
+
         if (match) {
             tokens.push(fun(match[0]))
             str = str.substr(match[0].length)
         } else {
             throw "unexpected token"
+
         }
+        console.log({ match, regex })
     }
+
     console.log(tokens)
+
     return tokens
 }
 
