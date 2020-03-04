@@ -35,6 +35,14 @@ class Atom extends Expr {
     copy() {
         return new Atom(this.value)
     }
+
+    isComplement(other) {
+        return this.value === other.value && this.negated != other.negated
+    }
+
+    isEqual(other) {
+        return this.value === other.value && this.negated === other.negated
+    }
 }
 
 class And extends Expr {
@@ -208,12 +216,109 @@ class CNF {
                     clause.push(x)
                 }
             }
-            this.clauses.push(clause)
+            this.clauses.push(new Clause(clause))
         }
     }
 
     toString() {
-        let strs = this.clauses.map(c => `${c.join(' \u2228 ')}`).join(',')
+        let strs = this.clauses.map(c => c.toString()).join(',')
         return `{${strs}}`
     }
+}
+
+class Clause {
+    constructor(lits) {
+        this.literals = lits
+    }
+
+    resolution(other) {
+        for (let lit of this.literals) {
+            if (other.includesComplement(lit)) {
+                let out = []
+                for (let x of this.literals) {
+                    if (!x.isEqual(lit)) {
+                        out.push(x)
+                    }
+                }
+                for (let x of other.literals) {
+                    if (!x.isComplement(lit)) {
+                        out.push(x)
+                    }
+                }
+
+                // simplification
+                for (let i = 0; i < out.length; i++) {
+                    for (let j = i + 1; j < out.length; j++) {
+                        if (out[i].isComplement(out[j])) return new Clause([]);
+                        if (out[i].isEqual(out[j])) {
+                            out.splice(j, 1)
+                        }
+                    }
+                }
+                return new Clause(out)
+            }
+        }
+
+        return null
+    }
+
+    includesComplement(lit) {
+        for (let lit1 of this.literals) {
+            if (lit1.isComplement(lit)) {
+                return true
+            }
+        }
+        return false
+    }
+
+    isEqual(other) {
+        if (this.literals.length !== other.literals.length) {
+            return false
+        }
+        for (let i = 0; i < this.literals.length; i++) {
+            if (!this.literals[i].isEqual(other.literals[i])) {
+                return false
+            }
+        }
+        return true
+    }
+
+    toString() {
+        return `${this.literals.join(' \u2228 ')}`
+    }
+}
+
+class KB {
+    constructor() {
+        this.clauses = []
+    }
+
+    tell(formula) {
+        let cnf = new CNF(formula)
+        this.clauses.push(...cnf.clauses)
+    }
+
+    ask(formula) {
+        let cnf = new CNF(formula.not())
+        let stack = cnf.clauses
+
+        while (stack.length) {
+            let clause = stack.pop()
+
+            for (let other of this.clauses) {
+                let res = clause.resolution(other)
+                if (res) {
+                    // empty clause found => contradiction with input
+                    if (res.literals.length === 0) {
+                        return true;
+                    }
+                    stack.push(res)
+                }
+            }
+
+            this.clauses.push(clause)
+        }
+        return false
+    }
+
 }
